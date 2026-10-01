@@ -18,30 +18,24 @@
 ## 📁 โครงสร้างโปรเจกต์ (Project Structure)
 
 ```text
-campus-wifi-reporting/
-│
-├── index.html                    <-- (หรืออยู่ใน src/views/)
-├── login.html
-├── register.html
-├── report.html
-├── it-dashboard.html
-├── qa-report.html
-├── style.css                     <-- ไฟล์ Styling รวมของระบบ
-│
-└── src/
-    ├── models/
-    │   ├── User.js               <-- Model กำหนดโครงสร้างผู้ใช้/Regex อีเมล
-    │   └── Ticket.js             <-- Model กำหนดข้อมูลใบแจ้งซ่อมและรายชื่ออาคาร
-    │
-    ├── controllers/
-    │   ├── authController.js     <-- ระบบ ล็อกอิน/สมัครสมาชิก/สิทธิ์ ( Admin: admin@psru.ac.th / 1111 )
-    │   ├── ticketController.js   <-- ระบบ บันทึก/โหลดคำร้องแจ้งปัญหา (DB)
-    │   ├── adminController.js    <-- ระบบ อัปเดตสถานะสำหรับ IT
-    │   └── networkController.js  <-- ระบบ คำนวณความหนาแน่นและแจ้งเตือน
-    │
-    └── views/                   <-- (กรณีที่แยก HTML ไว้ในโฟลเดอร์ views)
-        ├── index.html
-        ├── login.html
-        ├── register.html
-        ├── report.html
-        └── it-dashboard.html
+CAMPUS-WIFI-REPORTS/
+├── src/
+│   ├── controllers/
+│   │   ├── adminController.js
+│   │   ├── authController.js
+│   │   ├── networkController.js
+│   │   └── ticketController.js
+│   ├── models/
+│   │   ├── Ticket.js
+│   │   └── User.js
+│   └── views/
+│       ├── index.html
+│       ├── it-dashboard.html
+│       ├── login.html
+│       ├── qa-report.html
+│       ├── register.html
+│       ├── report.html
+│       └── style.css
+├── package.json
+└── tests/
+    └── app.test.js
