@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบรายงาน QA & Test Automation - Campus Wi-Fi Reporting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .qa-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-card .number {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .summary-card.pass .number { color: #16a34a; }
+    .summary-card.fail .number { color: #dc2626; }
+    .summary-card.total .number { color: var(--primary); }
+
+    .test-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .form-inline {
+      display: grid;
+      grid-template-columns: 2fr 3fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 16px;
+    }
+
+    .review-box {
+      background-color: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      padding: 16px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div>
+        <h1>🧪 ระบบบริหารจัดการ QA และการทดสอบซอฟต์แวร์ (QA Dashboard)</h1>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">ใบงานที่ 5: การทดสอบอัตโนมัติ ติดตาม Defect และ Peer Review</p>
+      </div>
+      <button id="runTestsBtn" class="btn primary">🚀 รัน Test Suite บนหน้าเว็บ</button>
+    </div>
+  </header>
+
+  <nav>
+    <div class="wrap">
+      <a href="index.html">หน้าแรก</a>
+      <a href="report.html">แจ้งเน็ตช้า</a>
+      <a href="it-dashboard.html">สำหรับ IT</a>
+      <a href="qa-report.html" class="active">ระบบ QA (ใบงานที่ 5)</a>
+      <div id="authNavArea" style="margin-left: auto; display: flex; align-items: center; gap: 8px;"></div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <div class="qa-summary-grid">
+      <div class="summary-card total">
+        <div>Test Cases ทั้งหมด</div>
+        <div class="number" id="totalCount">10</div>
+      </div>
+      <div class="summary-card pass">
+        <div>ผ่าน (PASS)</div>
+        <div class="number" id="passCount">0</div>
+      </div>
+      <div class="summary-card fail">
+        <div>ไม่ผ่าน (FAIL)</div>
+        <div class="number" id="failCount">0</div>
+      </div>
+      <div class="summary-card">
+        <div>เวลาที่ใช้รัน</div>
+        <div class="number" id="execTime" style="font-size: 1.4rem; color: #475569;">-</div>
+      </div>
+    </div>
+
+    <section>
+      <div class="test-actions">
+        <h2>📊 1. ตารางกรณีการทดสอบ (Test Cases & Results)</h2>
+        <div>
+          <label style="display:inline; margin-right: 8px;">ตัวกรอง:</label>
+          <select id="filterStatus" style="width: auto; display: inline-block;">
+            <option value="ALL">ทั้งหมด</option>
+            <option value="PASS">PASS เท่านั้น</option>
+            <option value="FAIL">FAIL เท่านั้น</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%;">ID</th>
+            <th style="width: 25%;">Test Scenario</th>
+            <th style="width: 25%;">Expected Result</th>
+            <th style="width: 25%;">Actual Result</th>
+            <th style="width: 15%;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="testCasesTable"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>🐞 2. ระบบรายงานและติดตามข้อผิดพลาด (Defect Tracking System)</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">ลงทะเบียนข้อผิดพลาดที่พบจากการทดสอบซอฟต์แวร์พร้อมสถานะการแก้ไข</p>
+      
+      <table style="margin-top: 16px;">
+        <thead>
+          <tr>
+            <th>Defect ID</th>
+            <th>รายละเอียดข้อผิดพลาด</th>
+            <th>ระดับความรุนแรง</th>
+            <th>สถานะ</th>
+            <th>การดำเนินการ</th>
+          </tr>
+        </thead>
+        <tbody id="defectTable"></tbody>
+      </table>
+
+      <form id="defectForm" class="form-inline">
+        <div>
+          <label for="defDesc">รายละเอียดปัญหา</label>
+          <input type="text" id="defDesc" placeholder="เช่น กดปุ่มแล้วไม่ตอบสนอง" required>
+        </div>
+        <div>
+          <label for="defFix">แนวทางแก้ไข</label>
+          <input type="text" id="defFix" placeholder="เช่น เพิ่ม Event Listener" required>
+        </div>
+        <div>
+          <label for="defSev">ความรุนแรง</label>
+          <select id="defSev">
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+          </select>
+        </div>
+        <div>
+          <label for="defStatus">สถานะ</label>
+          <select id="defStatus">
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved" selected>Resolved</option>
+          </select>
+        </div>
+        <div>
+          <button type="submit" class="btn primary" style="padding: 10px 16px;">+ บันทึก Defect</button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <h2>🔍 3. รายงานการตรวจทานโดยเพื่อน (Peer Review Report)</h2>
+      <div class="review-box">
+        <p><strong>ผู้ตรวจทาน (Reviewer):</strong> ทีมเพื่อนนักศึกษา สาขาวิชาวิทยาการคอมพิวเตอร์</p>
+        <p><strong>วันที่ตรวจทาน:</strong> 1 ตุลาคม 2026</p>
+        <p><strong>ผลการประเมินโค้ดและเอกสาร:</strong></p>
+        <ul style="margin-left: 20px; margin-top: 8px;">
+          <li>โครงสร้างโปรเจกต์สอดคล้องตามหลักการ MVC แยกส่วน Model, Controller และ View ชัดเจน</li>
+          <li>ฟังก์ชันการตรวจสอบอีเมล <code>@psru.ac.th</code> สามารถป้องกันผู้ใช้งานภายนอกได้ถูกต้อง</li>
+          <li>ปรับปรุงระบบ Login/Register ยืนยันตัวตนก่อนแจ้งปัญหาเรียบร้อย</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { User } from '../models/User.js';
+    import { login, logout, loadMe } from '../controllers/authController.js';
+    import { createTicket } from '../controllers/ticketController.js';
+    import { level, getOpenCount } from '../controllers/networkController.js';
+    import { advanceTicket } from '../controllers/adminController.js';
+
+    const user = loadMe();
+    const authArea = document.getElementById('authNavArea');
+    if (user) {
+      authArea.innerHTML = `
+        <span style="font-size: 0.85rem; color: var(--text-muted);">👤 ${user.name || user.email}</span>
+        <button id="logoutBtn" class="btn secondary" style="padding: 4px 10px; font-size: 0.85rem;">ออกจากระบบ</button>
+      `;
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        logout();
+        window.location.reload();
+      });
+    } else {
+      authArea.innerHTML = `
+        <a href="login.html" style="padding: 8px 12px;">เข้าสู่ระบบ</a>
+        <a href="register.html" class="btn primary" style="padding: 6px 12px; font-size: 0.85rem; color: #fff;">สมัครสมาชิก</a>
+      `;
+    }
+
+    const testSuite = [
+      {
+        id: 'TC-01',
+        name: 'ตรวจสอบรูปแบบอีเมล @psru.ac.th',
+        expected: 'ยอมรับอีเมลมหาวิทยาลัยถูกต้อง',
+        fn: () => User.isValidEmail('65123456@psru.ac.th') === true
+      },
+      {
+        id: 'TC-02',
+        name: 'ตรวจสอบการปฏิเสธโดเมนภายนอก (@gmail.com)',
+        expected: 'ปฏิเสธและคืนค่า false',
+        fn: () => User.isValidEmail('user@gmail.com') === false
+      },
+      {
+        id: 'TC-03',
+        name: 'เข้าสู่ระบบสำเร็จเมื่อระบุอีเมล @psru.ac.th',
+        expected: 'คืนค่าวัตถุ User และบันทึก Session',
+        fn: () => {
+          const u = login('student@psru.ac.th', 'student');
+          return u && u.id === 'student@psru.ac.th';
+        }
+      },
+      {
+        id: 'TC-04',
+        name: 'ไม่อนุญาตให้ Login ด้วยอีเมลภายนอก',
+        expected: 'เกิด Error เมื่อล็อกอินด้วยอีเมลอื่น',
+        fn: () => {
+          try {
+            login('bad@gmail.com', 'student');
+            return false;
+          } catch (e) {
+            return true;
+          }
+        }
+      },
+      {
+        id: 'TC-05',
+        name: 'สร้างใบแจ้งซ่อมเน็ตช้า (Ticket)',
+        expected: 'สร้างคำร้องรหัสขึ้นต้นด้วย TK- ได้สำเร็จ',
+        fn: () => {
+          const mockDB = { tickets: [], notifs: [], seq: 0 };
+          const t = createTicket(mockDB, 'อาคารเรียนรวม', 'ชั้น 1', 'เน็ตช้า', 'รายละเอียด', false, 'student@psru.ac.th');
+          return t && t.id.startsWith('TK-');
+        }
+      },
+      {
+        id: 'TC-06',
+        name: 'ประเมินระดับความหนาแน่นเครือข่าย',
+        expected: 'แสดงระดับ bad เมื่อมีค้าง >= 3',
+        fn: () => level(3) === 'bad' && level(0) === 'good'
+      },
+      {
+        id: 'TC-07',
+        name: 'นับเฉพาะ Ticket ที่ยังแก้ไขไม่เสร็จ',
+        expected: 'ไม่นำรายการที่ Resolved มาคำนวณ',
+        fn: () => {
+          const mock = [
+            { building: 'A', floor: '1', status: 'Pending' },
+            { building: 'A', floor: '1', status: 'Resolved' }
+          ];
+          return getOpenCount(mock, 'A', '1') === 1;
+        }
+      },
+      {
+        id: 'TC-08',
+        name: 'IT เปลี่ยนสถานะงานเป็น In Progress',
+        expected: 'อัปเดตสถานะคำร้องสำเร็จ',
+        fn: () => {
+          const mockDB = {
+            tickets: [{ id: 'TK-0001', building: 'A', floor: '1', status: 'Pending', reporter: 's@psru.ac.th' }],
+            notifs: []
+          };
+          const updated = advanceTicket(mockDB, 'TK-0001');
+          return updated.status === 'In Progress';
+        }
+      },
+      {
+        id: 'TC-09',
+        name: 'สร้างการแจ้งเตือนไปยังผู้แจ้งอัตโนมัติ',
+        expected: 'เพิ่มรายการ Notification ใหม่',
+        fn: () => {
+          const mockDB = {
+            tickets: [{ id: 'TK-0001', building: 'A', floor: '1', status: 'Pending', reporter: 's@psru.ac.th' }],
+            notifs: []
+          };
+          advanceTicket(mockDB, 'TK-0001');
+          return mockDB.notifs.length === 1;
+        }
+      },
+      {
+        id: 'TC-10',
+        name: 'ออกจากระบบ ล้างข้อมูล Session',
+        expected: 'SessionStorage โดนล้างค่า',
+        fn: () => {
+          logout();
+          return sessionStorage.getItem('cwrs_user') === null;
+        }
+      }
+    ];
+
+    let defects = [
+      {
+        id: 'DEF-01',
+        desc: 'รายการชั้นไม่รีเซ็ตเมื่อเปลี่ยนอาคาร',
+        fix: 'เขียน Event Listener `change` ใน report.html ล้าง Option',
+        sev: 'High',
+        status: 'Resolved'
+      },
+      {
+        id: 'DEF-02',
+        desc: 'CORS Error เมื่อเปิดไฟล์ผ่าน file:///',
+        fix: 'รันระบบผ่าน Live Server หรือ Web Server',
+        sev: 'Medium',
+        status: 'Resolved'
+      }
+    ];
+
+    let testResults = [];
+
+    function executeTestSuite() {
+      const startTime = performance.now();
+      let pass = 0;
+      let fail = 0;
+
+      testResults = testSuite.map(tc => {
+        let isPass = false;
+        let actual = '';
+        try {
+          isPass = tc.fn();
+          actual = isPass ? 'ทำงานถูกต้องตามเงื่อนไข' : 'ผลลัพธ์ไม่ตรงตามคาดหวัง';
+        } catch (err) {
+          isPass = false;
+          actual = 'เกิด Error: ' + err.message;
+        }
+
+        if (isPass) pass++; else fail++;
+
+        return { ...tc, isPass, actual };
+      });
+
+      const endTime = performance.now();
+      document.getElementById('passCount').textContent = pass;
+      document.getElementById('failCount').textContent = fail;
+      document.getElementById('execTime').textContent = (endTime - startTime).toFixed(2) + ' ms';
+
+      renderTestTable();
+    }
+
+    function renderTestTable() {
+      const filter = document.getElementById('filterStatus').value;
+      const tbody = document.getElementById('testCasesTable');
+
+      const filtered = testResults.filter(r => {
+        if (filter === 'PASS') return r.isPass;
+        if (filter === 'FAIL') return !r.isPass;
+        return true;
+      });
+
+      tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td><strong>${r.id}</strong></td>
+          <td>${r.name}</td>
+          <td>${r.expected}</td>
+          <td>${r.actual}</td>
+          <td>
+            <span class="badge ${r.isPass ? 'good' : 'bad'}">
+              ${r.isPass ? 'PASS' : 'FAIL'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderDefects() {
+      const tbody = document.getElementById('defectTable');
+      tbody.innerHTML = defects.map((d, index) => `
+        <tr>
+          <td><strong>${d.id}</strong></td>
+          <td>${d.desc}<br><small style="color:var(--text-muted);">การแก้: ${d.fix}</small></td>
+          <td><span class="badge ${d.sev === 'High' ? 'bad' : 'warn'}">${d.sev}</span></td>
+          <td><span class="badge ${d.status === 'Resolved' ? 'good' : 'pending'}">${d.status}</span></td>
+          <td>
+            <button class="btn secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="toggleDefectStatus(${index})">
+              เปลี่ยนสถานะ
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.toggleDefectStatus = (index) => {
+      const curr = defects[index].status;
+      defects[index].status = curr === 'Resolved' ? 'In Progress' : 'Resolved';
+      renderDefects();
+    };
+
+    document.getElementById('defectForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newDef = {
+        id: 'DEF-0' + (defects.length + 1),
+        desc: document.getElementById('defDesc').value,
+        fix: document.getElementById('defFix').value,
+        sev: document.getElementById('defSev').value,
+        status: document.getElementById('defStatus').value
+      };
+      defects.push(newDef);
+      renderDefects();
+      e.target.reset();
+    });
+
+    document.getElementById('runTestsBtn').addEventListener('click', executeTestSuite);
+    document.getElementById('filterStatus').addEventListener('change', renderTestTable);
+
+    executeTestSuite();
+    renderDefects();
+  </script>
+</body>
+</html>

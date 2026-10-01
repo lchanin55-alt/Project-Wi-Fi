@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สมัครสมาชิก - Campus Wi-Fi Reporting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-container {
+      max-width: 480px;
+      margin: 40px auto;
+      background: var(--bg-card);
+      padding: 32px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .alert-error {
+      background-color: var(--status-bad-bg);
+      color: var(--status-bad-text);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div>
+        <h1>📶 ระบบแจ้งและติดตามปัญหา Wi-Fi มหาวิทยาลัย</h1>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="wrap">
+      <a href="index.html">หน้าแรก</a>
+      <a href="report.html">แจ้งเน็ตช้า</a>
+      <a href="it-dashboard.html">สำหรับ IT</a>
+      <a href="qa-report.html">ระบบ QA (ใบงานที่ 5)</a>
+      <a href="login.html">เข้าสู่ระบบ</a>
+      <a href="register.html" class="active">สมัครสมาชิก</a>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <div class="auth-container">
+      <div class="auth-header">
+        <h2>📝 สมัครสมาชิก</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">ใช้สำหรับนักศึกษาและบุคลากร มรพส. (@psru.ac.th)</p>
+      </div>
+
+      <div id="errorMessage" class="alert-error"></div>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="fullName">ชื่อ - นามสกุล</label>
+          <input type="text" id="fullName" placeholder="นายxxxx นามสกุลxxxx" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">อีเมลมหาวิทยาลัย (@psru.ac.th)</label>
+          <input type="email" id="email" placeholder="xxxxxxxxx@psru.ac.th" required>
+        </div>
+
+        <div class="form-group">
+          <label for="role">ประเภทผู้ใช้งาน</label>
+          <select id="role" required>
+            <option value="student">นักศึกษา</option>
+            <option value="staff">บุคลากร / อาจารย์</option>
+            <option value="it">เจ้าหน้าที่ IT</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="password">รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)</label>
+          <input type="password" id="password" placeholder="••••••••" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
+          <input type="password" id="confirmPassword" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn primary" style="width: 100%; margin-top: 12px;">
+          ลงทะเบียนเข้าใช้งาน
+        </button>
+
+        <p style="text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted);">
+          มีบัญชีอยู่แล้ว? <a href="login.html" style="color: var(--primary); font-weight: 600;">เข้าสู่ระบบที่นี่</a>
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script type="module">
+    import { registerUser } from '../controllers/authController.js';
+
+    const form = document.getElementById('registerForm');
+    const errBox = document.getElementById('errorMessage');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+
+      const name = document.getElementById('fullName').value;
+      const email = document.getElementById('email').value;
+      const role = document.getElementById('role').value;
+      const pass = document.getElementById('password').value;
+      const confirmPass = document.getElementById('confirmPassword').value;
+
+      if (pass !== confirmPass) {
+        errBox.textContent = 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        registerUser(name, email, pass, role);
+        alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบเพื่อใช้งาน');
+        window.location.href = 'login.html';
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

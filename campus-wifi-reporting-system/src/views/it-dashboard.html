@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IT Dashboard - Campus Wi-Fi Reporting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div>
+        <h1>📶 ระบบจัดการคิวงานสำหรับเจ้าหน้าที่ IT</h1>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="wrap">
+      <a href="index.html">หน้าแรก</a>
+      <a href="report.html">แจ้งเน็ตช้า</a>
+      <a href="it-dashboard.html" class="active">สำหรับ IT</a>
+      <a href="qa-report.html">ระบบ QA (ใบงานที่ 5)</a>
+      <div id="authNavArea" style="margin-left: auto; display: flex; align-items: center; gap: 8px;"></div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section>
+      <h2>🛠️ คิวงานแจ้งซ่อมระบบ Wi-Fi ทั้งหมด</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>รหัสคำร้อง</th>
+            <th>สถานที่</th>
+            <th>ประเภทปัญหา</th>
+            <th>ผู้แจ้ง</th>
+            <th>สถานะปัจจุบัน</th>
+            <th>การดำเนินการ</th>
+          </tr>
+        </thead>
+        <tbody id="itTicketList"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module">
+    import { loadDB } from '../controllers/ticketController.js';
+    import { advanceTicket, NEXT_STATUS } from '../controllers/adminController.js';
+    import { loadMe, logout } from '../controllers/authController.js';
+
+    // Route Guard: เช็คสิทธิ์ว่าเป็น Admin/IT หรือไม่
+    const user = loadMe();
+    if (!user || user.role !== 'admin') {
+      alert('หน้านี้สำหรับเจ้าหน้าที่ IT เท่านั้น กรุณาเข้าสู่ระบบด้วยบัญชี IT');
+      logout();
+      window.location.href = 'login.html?redirect=it-dashboard.html';
+    } else {
+      const authArea = document.getElementById('authNavArea');
+      authArea.innerHTML = `
+        <span style="font-size: 0.85rem; color: var(--text-muted);">👤 ${user.name || user.email} (IT)</span>
+        <button id="logoutBtn" class="btn secondary" style="padding: 4px 10px; font-size: 0.85rem;">สลับเข้าใช้งานบัญชีอื่น</button>
+      `;
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        logout();
+        window.location.href = 'login.html';
+      });
+
+      renderIT();
+    }
+
+    function renderIT() {
+      const db = loadDB();
+      const list = document.getElementById('itTicketList');
+      
+      if (!db.tickets || db.tickets.length === 0) {
+        list.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">ไม่มีรายการคำร้องในระบบ</td></tr>';
+        return;
+      }
+
+      list.innerHTML = db.tickets.map(t => {
+        const next = NEXT_STATUS[t.status];
+        const btnHtml = next 
+          ? `<button class="btn primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="handleAdvance('${t.id}')">${next[1]}</button>`
+          : `<span style="color: var(--text-muted); font-size: 0.85rem;">เสร็จสิ้น</span>`;
+
+        return `
+          <tr>
+            <td><strong>${t.id}</strong></td>
+            <td>${t.building} (${t.floor})</td>
+            <td>${t.issue}</td>
+            <td>${t.reporter}</td>
+            <td><span class="badge ${t.status.toLowerCase().replace(' ', '-')}">${t.status}</span></td>
+            <td>${btnHtml}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.handleAdvance = (id) => {
+      const db = loadDB();
+      advanceTicket(db, id);
+      renderIT();
+    };
+  </script>
+</body>
+</html>

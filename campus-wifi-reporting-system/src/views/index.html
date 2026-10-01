@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>หน้าแรก - Campus Wi-Fi Reporting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div>
+        <h1>📶 ระบบแจ้งและติดตามปัญหา Wi-Fi มหาวิทยาลัย</h1>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">รายงานปัญหาอินเทอร์เน็ตเพื่อการแก้ไขที่รวดเร็ว</p>
+      </div>
+      <button id="btnHeaderReport" class="btn primary">+ แจ้งเน็ตช้า</button>
+    </div>
+  </header>
+
+  <nav>
+    <div class="wrap">
+      <a href="index.html" class="active">หน้าแรก</a>
+      <a href="#" id="linkReport">แจ้งเน็ตช้า</a>
+      <a href="#" id="linkIT">สำหรับ IT</a>
+      <a href="qa-report.html">ระบบ QA (ใบงานที่ 5)</a>
+      <div id="authNavArea" style="margin-left: auto; display: flex; align-items: center; gap: 8px;"></div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section>
+      <h2>📍 แผนที่สถานะเครือข่าย (Network Status Map)</h2>
+      <div id="mapContainer" class="building-grid"></div>
+    </section>
+
+    <section>
+      <h2>📋 คำร้องแจ้งปัญหาล่าสุด</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>รหัสคำร้อง</th>
+            <th>สถานที่</th>
+            <th>ประเภทปัญหา</th>
+            <th>ผู้แจ้ง</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="ticketList"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module">
+    import { BUILDINGS } from '../models/Ticket.js';
+    import { loadDB } from '../controllers/ticketController.js';
+    import { getOpenCount, level } from '../controllers/networkController.js';
+    import { loadMe, logout, requireLoginForSection } from '../controllers/authController.js';
+
+    const user = loadMe();
+    const authArea = document.getElementById('authNavArea');
+
+    if (user) {
+      authArea.innerHTML = `
+        <span style="font-size: 0.85rem; color: var(--text-muted);">👤 ${user.name || user.email} (${user.role})</span>
+        <button id="switchUserBtn" class="btn secondary" style="padding: 4px 10px; font-size: 0.85rem;">สลับบัญชี</button>
+      `;
+      document.getElementById('switchUserBtn').addEventListener('click', () => {
+        logout();
+        window.location.href = 'login.html';
+      });
+    } else {
+      authArea.innerHTML = `
+        <a href="login.html" style="padding: 8px 12px;">เข้าสู่ระบบ</a>
+        <a href="register.html" class="btn primary" style="padding: 6px 12px; font-size: 0.85rem; color: #fff;">สมัครสมาชิก</a>
+      `;
+    }
+
+    // กดสลับหัวข้อ -> ตรวจสอบและให้เข้าสู่ระบบตามเงื่อนไข
+    document.getElementById('linkReport').addEventListener('click', (e) => {
+      e.preventDefault();
+      requireLoginForSection('report.html');
+    });
+
+    document.getElementById('btnHeaderReport').addEventListener('click', (e) => {
+      e.preventDefault();
+      requireLoginForSection('report.html');
+    });
+
+    document.getElementById('linkIT').addEventListener('click', (e) => {
+      e.preventDefault();
+      // บังคับว่าต้องใช้สิทธิ์ IT (admin) หากบัญชีปัจจุบันไม่ใช่ IT ระบบจะหลุดออกแล้วให้ล็อกอินใหม่
+      requireLoginForSection('it-dashboard.html', 'admin');
+    });
+
+    // Render Data
+    const db = loadDB();
+    const mapContainer = document.getElementById('mapContainer');
+    mapContainer.innerHTML = Object.entries(BUILDINGS).map(([b, floors]) => `
+      <div class="building-card">
+        <h3>${b}</h3>
+        ${floors.map(f => {
+          const count = getOpenCount(db.tickets, b, f);
+          const lvl = level(count);
+          const txt = lvl === 'bad' ? `หนาแน่นสูง (${count})` : lvl === 'warn' ? `ช้าปานกลาง (${count})` : 'ปกติ';
+          return `
+            <div class="floor-row">
+              <span>${f}</span>
+              <span class="badge ${lvl}">${txt}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `).join('');
+
+    const ticketList = document.getElementById('ticketList');
+    if (!db.tickets || db.tickets.length === 0) {
+      ticketList.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">ยังไม่มีรายการแจ้งซ่อม</td></tr>';
+    } else {
+      ticketList.innerHTML = db.tickets.map(t => `
+        <tr>
+          <td><strong>${t.id}</strong></td>
+          <td>${t.building} (${t.floor})</td>
+          <td>${t.issue}</td>
+          <td>${t.reporter}</td>
+          <td><span class="badge ${t.status.toLowerCase().replace(' ', '-')}">${t.status}</span></td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

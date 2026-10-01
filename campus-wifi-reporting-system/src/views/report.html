@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แจ้งปัญหา Wi-Fi - Campus Wi-Fi Reporting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div>
+        <h1>📶 ระบบแจ้งและติดตามปัญหา Wi-Fi มหาวิทยาลัย</h1>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="wrap">
+      <a href="index.html">หน้าแรก</a>
+      <a href="report.html" class="active">แจ้งเน็ตช้า</a>
+      <a href="it-dashboard.html">สำหรับ IT</a>
+      <a href="qa-report.html">ระบบ QA (ใบงานที่ 5)</a>
+      <div id="authNavArea" style="margin-left: auto; display: flex; align-items: center; gap: 8px;"></div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section>
+      <h2>📝 แบบฟอร์มแจ้งปัญหา Wi-Fi (Report Form)</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+        กรุณากรอกข้อมูลสถานที่และลักษณะปัญหาที่พบ เพื่อให้เจ้าหน้าที่ดำเนินการตรวจสอบ
+      </p>
+
+      <form id="reportForm">
+        <div class="form-group">
+          <label for="email">อีเมลมหาวิทยาลัย (@psru.ac.th)</label>
+          <input type="email" id="email" placeholder="65123456@psru.ac.th" required readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="building">อาคารที่พบปัญหา</label>
+          <select id="building" required>
+            <option value="">-- เลือกอาคาร --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="floor">ชั้น</label>
+          <select id="floor" required disabled>
+            <option value="">-- กรุณาเลือกอาคารก่อน --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="issue">ประเภทปัญหาที่พบ</label>
+          <select id="issue" required>
+            <option value="">-- เลือกปัญหาที่พบ --</option>
+            <option value="เน็ตช้า / ช้ามาก">เน็ตช้า / ช้ามาก</option>
+            <option value="สัญญาณหลุดบ่อย">สัญญาณหลุดบ่อย</option>
+            <option value="เชื่อมต่อไม่ได้ (Cannot Connect)">เชื่อมต่อไม่ได้ (Cannot Connect)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="detail">รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+          <textarea id="detail" rows="4" placeholder="เช่น บริเวณห้อง 204 สัญญาณอ่อนมาก..."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="submit" class="btn primary">ส่งรายงานปัญหา</button>
+          <a href="index.html" class="btn secondary">ยกเลิก</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script type="module">
+    import { BUILDINGS } from '../models/Ticket.js';
+    import { User } from '../models/User.js';
+    import { loadDB, createTicket } from '../controllers/ticketController.js';
+    import { loadMe, logout } from '../controllers/authController.js';
+
+    // Route Guard
+    const user = loadMe();
+    if (!user) {
+      alert('คุณจำเป็นต้องเข้าสู่ระบบก่อนเข้าใช้งานหน้านี้');
+      window.location.href = 'login.html';
+    }
+
+    const authArea = document.getElementById('authNavArea');
+    const emailInput = document.getElementById('email');
+
+    authArea.innerHTML = `
+      <span style="font-size: 0.85rem; color: var(--text-muted);">👤 ${user.name || user.email}</span>
+      <button id="logoutBtn" class="btn secondary" style="padding: 4px 10px; font-size: 0.85rem;">ออกจากระบบ</button>
+    `;
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      logout();
+      window.location.href = 'index.html';
+    });
+
+    emailInput.value = user.email;
+
+    const bSelect = document.getElementById('building');
+    const fSelect = document.getElementById('floor');
+    const form = document.getElementById('reportForm');
+
+    Object.keys(BUILDINGS).forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b;
+      opt.textContent = b;
+      bSelect.appendChild(opt);
+    });
+
+    bSelect.addEventListener('change', () => {
+      const b = bSelect.value;
+      fSelect.innerHTML = '<option value="">-- เลือกชั้น --</option>';
+      if (b && BUILDINGS[b]) {
+        BUILDINGS[b].forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f;
+          opt.textContent = f;
+          fSelect.appendChild(opt);
+        });
+        fSelect.disabled = false;
+      } else {
+        fSelect.disabled = true;
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      
+      if (!User.isValidEmail(email)) {
+        alert('กรุณาใช้อีเมลมหาวิทยาลัย @psru.ac.th เท่านั้น');
+        return;
+      }
+
+      const db = loadDB();
+      const ticket = createTicket(
+        db,
+        bSelect.value,
+        fSelect.value,
+        document.getElementById('issue').value,
+        document.getElementById('detail').value,
+        false,
+        email
+      );
+
+      alert(`บันทึกคำร้องสำเร็จ! รหัสคำร้องของคุณคือ ${ticket.id}`);
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
